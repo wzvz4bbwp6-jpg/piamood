@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pia Mood Lab - Ana Sayfa</title>
+    <style>
+        /* Trendyol Tarzı Modern Temiz Tasarım */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #fafafa; color: #333; }
+        
+        nav { background: #fff; padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e6e6e6; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .logo { font-size: 24px; font-weight: 800; color: #F27A1A; text-decoration: none; letter-spacing: 0.5px; }
+        
+        .nav-links { display: flex; align-items: center; gap: 20px; }
+        .nav-links a { text-decoration: none; color: #444; font-weight: 600; font-size: 14px; transition: 0.2s; }
+        .nav-links a:hover { color: #F27A1A; }
+        
+        #auth-status { display: flex; align-items: center; gap: 15px; border-left: 1px solid #eee; padding-left: 20px; }
+        .user-email { font-size: 13px; color: #666; font-weight: 500; }
+        .logout-btn { color: #e74c3c !important; cursor: pointer; }
+        .logout-btn:hover { color: #c0392b !important; }
+
+        /* Ürün Vitrini */
+        #urunler-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; padding: 40px; max-width: 1200px; margin: 0 auto; }
+        .urun-kart { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 15px; text-align: center; transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; }
+        .urun-kart:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-3px); border-color: #ddd; }
+        .urun-kart img { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; margin-bottom: 15px; }
+        .urun-kart h3 { font-size: 15px; color: #333; margin: 10px 0 5px 0; font-weight: 600; height: 40px; overflow: hidden; }
+        .urun-kart p { font-size: 16px; color: #F27A1A; font-weight: 700; margin: 5px 0 15px 0; }
+        .urun-link { display: block; background: #F27A1A; color: #fff; text-decoration: none; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 13px; transition: 0.2s; }
+        .urun-link:hover { background: #d66b15; }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="index.html" class="logo">Pia Mood Lab</a>
+        <div class="nav-links">
+            <a href="index.html">Ana Sayfa</a>
+            <a href="hakkinda.html">Hakkımızda</a>
+            <div id="auth-status">
+                <span class="user-email">Yükleniyor...</span>
+            </div>
+        </div>
+    </nav>
+
+    <div id="urunler-grid"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgPKMhnoIPx1bupQnC08lW8xAWH1iLbis",
+            authDomain: "piamoodlab.firebaseapp.com",
+            projectId: "piamoodlab",
+            storageBucket: "piamoodlab.firebasestorage.app",
+            messagingSenderId: "835842272764",
+            appId: "1:835842272764:web:0f326d1d0cfa143ca7d679"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Dinamik Kullanıcı / Menü Kontrolü
+        const authStatusDiv = document.getElementById("auth-status");
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                let menuHtml = "";
+                if (user.email === "cartillitunakerem@gmail.com") {
+                    menuHtml += `<a href="admin.html" style="color: #F27A1A; margin-right: 10px;">Satıcı Paneli</a>`;
+                }
+                menuHtml += `<span class="user-email">${user.email}</span>`;
+                menuHtml += `<a href="#" id="cikisYapBtn" class="logout-btn">Çıkış Yap</a>`;
+                authStatusDiv.innerHTML = menuHtml;
+
+                document.getElementById("cikisYapBtn").onclick = async (e) => {
+                    e.preventDefault();
+                    await signOut(auth);
+                    window.location.reload();
+                };
+            } else {
+                authStatusDiv.innerHTML = `<a href="giris.html">Giriş Yap / Kayıt Ol</a>`;
+            }
+        });
+
+        // Ürünleri Listeleme Fonksiyonu
+        async function urunleriGetir() {
+            try {
+                const q = query(collection(db, "urunler"), orderBy("tarih", "desc"));
+                const querySnapshot = await getDocs(q);
+                let h = "";
+                querySnapshot.forEach((doc) => {
+                    const u = doc.data();
+                    h += `<div class="urun-kart">
+                            <img src="${u.gorsel}" alt="${u.ad}">
+                            <h3>${u.ad}</h3>
+                            <p>${u.fiyat} TL</p>
+                            <a href="${u.link}" class="urun-link" target="_blank">Ürünü İncele</a>
+                          </div>`;
+                });
+                document.getElementById("urunler-grid").innerHTML = h === "" ? "<p style='text-align:center; grid-column: 1/-1; color:#999;'>Henüz ürün eklenmemiş.</p>" : h;
+            } catch (e) { console.error(e); }
+        }
+        urunleriGetir();
+    </script>
+</body>
+</html>
